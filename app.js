@@ -1,47 +1,46 @@
 const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
-const Question = require('./Question');
-const cors = require('cors')
 const bodyParser = require('body-parser');
+const url = 'mongodb://127.0.0.1:27017'
 
-require('dotenv/config');
+mongoose.connect(url, { useNewUrlParser: true })
+
+
+mongoose.connection.on('error', err => {   logError(err); });
+
+const db = mongoose.connection
+db.once('open', _ => {   console.log('Database connected:', url) })
+db.on('error', err => {   console.error('connection error:', err) })
+
+var questionSchema = mongoose.Schema({     question: String,     answers: Array, nick: String, rightIndex:Number });
+
+var Quest = mongoose.model('Quest', questionSchema);
+
+app.listen(3000);
 
 app.use(bodyParser.urlencoded({
     extended: true
 }));
 
-app.use(cors())
-
-app.get('/', async (req, res) => {
-    try {
-        const questions = await Question.find()
-        res.send(questions)
-    } catch (error) {
-        console.log(error);
-        
-    }
+app.get('/people', async (req, res) => {
+	res.send(await Quest.find())
 })
 
 app.post('/new-question', async (req, res) => {
-    console.log(req.body);
+    	console.log("????")
+	console.log(req.body);
 	
-	const que = new Question({
-        nick: req.body.nick,
+	var testQuest = await new Quest({
+        	nick: req.body.nick,
 		question: req.body.question,
-		answers: [req.body.answer1,req.body.answer2,req.body.answer3,req.body.answer4],
-		rightIndex: req.body.rightIndex -1,
+		answers: [req.body.answer1, req.body.answer2, req.body.answer3, req.body.answer4],
+		rightIndex: parseInt(req.body.rightIndex) -1,
+		
 	});
-	try {
-		const SavedPost = await que.save();
-		res.json(SavedPost);
-	} catch (error) {
-		console.log(error);
-	}
+
+	testQuest.save(function(err){         if(err) throw err;         console.log("SUCCESS")  })
+	res.send("Twoje pytanie zostało dodane do bazy danych! Aby dodać kolejne wróć na http://167.71.34.32/ !")
+
 });
 
-mongoose.connect(process.env.DB_CONNECTION, { useUnifiedTopology: true, useNewUrlParser: true }, () => {
-	console.log('CONNECTED!');
-});
-
-app.listen(3000);
